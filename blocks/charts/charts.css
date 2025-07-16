@@ -1,0 +1,9 @@
+.main-heading {
+display: flex;
+justify-content: space-between;
+}
+
+.data-indicator-block {
+  height: 100%;
+  width: 100%;
+}

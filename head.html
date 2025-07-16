@@ -1,4 +1,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <script src="/scripts/aem.js" type="module"></script>
 <script src="/scripts/scripts.js" type="module"></script>
+<script>
+window.chartsData = {
+  title: "LATIN AMERICA & CARIBBEAN BY THE NUMBERS",
+  buttonLabel: "Explore More Data",
+  buttonUrl: "/explore-data",
+  chart: {
+    title: "78 Years",
+    unit: "Years",
+    dataPoints: [
+      { year: 1960, value: 66 },
+      { year: 1980, value: 69 },
+      { year: 2000, value: 74 },
+      { year: 2022, value: 78 }
+    ]
+  },
+  indicators: [
+    { label: "Life Expectancy", value: "78 Years", hasIncreased: true },
+    { label: "Poverty", value: "5%", hasIncreased: true },
+    { label: "Renewable Energy", value: "15.14%", hasIncreased: true },
+    { label: "Labor Force Participation", value: "58%", hasIncreased: true },
+    { label: "School Enrollment", value: "99%", hasIncreased: true }
+  ]
+};
+</script>
+
+
 <link rel="stylesheet" href="/styles/styles.css"/>
+<link rel="stylesheet" href="https://webarchivedev.worldbank.org/accessibility/WBG/WBG-l1/scss/clientlib-l1.css">
