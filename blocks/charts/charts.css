@@ -7,3 +7,15 @@ justify-content: space-between;
   height: 100%;
   width: 100%;
 }
+
+.data-indicator-title a {
+    color: '#012740' !important;
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    line-height: 150% !important;
+    letter-spacing: -0.084px !important;
+}
+.data-up-arrow, .data-down-arrow {
+ min-width: 40px;
+    min-height: 40px;
+}
