@@ -9,6 +9,7 @@ import {
   fetchIndicatorNames,
   fetchLineChartData,
   fetchIndicatorValue,
+  fetchIndicatorMetadata,
 } from '../../scripts/api.js';
 import { endpointLabels } from '../../scripts/enum.js';
 
@@ -27,7 +28,7 @@ const config = {
   ],
   endpointList: [
     {
-      apiEndpoint: 'https://data360apiqa.worldbank.org/data360/searchv2',
+      apiEndpoint: 'https://data360api.worldbank.org/data360/searchv2',
       endpointLabel: 'metadata',
     },
     {
@@ -39,7 +40,7 @@ const config = {
       endpointLabel: 'disaggregation',
     },
     {
-      apiEndpoint: 'https://extdataportalqa.worldbank.org/qa/api/data360/data/indicator',
+      apiEndpoint: 'https://extdataportal.worldbank.org/api/data360/data/indicator',
       endpointLabel: 'data',
     },
   ],
@@ -84,7 +85,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   } = chartConfig;
 
   const indicatorNameEndpoint = getEndpointFromConfig(endpointList, endpointLabels.Metadata)?.apiEndpoint;
-  const indicatorName = await fetchIndicatorNames(indicatorNameEndpoint, [indicatorId], {
+  const indicatorMetadata = await fetchIndicatorMetadata(indicatorNameEndpoint, [indicatorId], {
     accept: 'application/json',
     'content-type': 'application/json',
     'Ocp-Apim-Subscription-Key': apiKeyValue,
@@ -106,7 +107,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   const latestYear = xAxis.length ? xAxis[xAxis.length - 1] : '';
 
   const dataIndicatorChart = document.createElement('div');
-  dataIndicatorChart.className = 'data-indicator-chart';
+  dataIndicatorChart.className = 'data-indicator-chart hover';
   const dataIndicatorHeader = document.createElement('div');
   dataIndicatorHeader.className = 'data-indicator-header';
   const dataIndicatorTitle = document.createElement('div');
@@ -116,10 +117,8 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   titleA.textContent = `${formatNumberOnUnitMeasure(latestValue, unitMeasure, decimals)} ${formatUnitMeasure(unitMeasure, unitMeasureName)}`;
   dataIndicatorTitle.appendChild(titleA);
   const descriptionP = document.createElement('p');
-  descriptionP.className = 'data-indicator-description';
-  descriptionP.textContent = `${indicatorName[indicatorId]}, ${latestYear}`;
-  dataIndicatorHeader.appendChild(dataIndicatorTitle);
-  dataIndicatorHeader.appendChild(descriptionP);
+  descriptionP.className = 'data-indicator-description ';
+  descriptionP.textContent = `${indicatorMetadata?.series_description?.name}, ${latestYear}`;
   const dataIndicatorBlock = document.createElement('div');
   dataIndicatorBlock.className = 'data-indicator-block';
   dataIndicatorBlock.id = 'lifeChart';
@@ -127,19 +126,78 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   sourceA.href = '#';
   sourceA.className = 'data-indicator-flip';
   sourceA.textContent = 'source';
+  sourceA.addEventListener('click', (e) => {
+    e.preventDefault();
+    const sourceDiv = document.createElement('div');
+    sourceDiv.className = 'data-indicator-source';
+    const closeButton = document.createElement('button');
+    closeButton.className = 'close-icon';
+    closeButton.setAttribute('aria-label', 'Close');
+    closeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M19.08 21.9134C19.8622 22.6955 21.1303 22.6955 21.9124 21.9134C22.6946 21.1312 22.6946 19.8631 21.9124 19.081L14.8314 12L21.9123 4.91901C22.6945 4.13686 22.6945 2.86875 21.9123 2.08661C21.1302 1.30446 19.8621 1.30446 19.0799 2.08661L11.999 9.16756L4.9181 2.08661C4.13596 1.30447 2.86785 1.30447 2.08571 2.08661C1.30357 2.86876 1.30357 4.13687 2.08571 4.91901L9.16664 12L2.08563 19.081C1.30349 19.8631 1.30349 21.1312 2.08563 21.9134C2.86777 22.6955 4.13587 22.6955 4.91802 21.9134L11.999 14.8324L19.08 21.9134Z" fill="#000D1A" fill-opacity="0.7"></path>
+    </svg>`;
+    closeButton.addEventListener('click', () => sourceDiv.remove());
+    const contentDiv = document.createElement('div');
+    const sources = indicatorMetadata?.series_description?.sources || [];
+    const sourceElements = sources.map((item, index) => {
+      const sourceSpan = document.createElement('span');
+      sourceSpan.key = `source-${index}`;
+      if (item.sourceLink) {
+        const sourceLink = document.createElement('a');
+        sourceLink.href = item.sourceLink;
+        sourceLink.target = '_blank';
+        sourceLink.textContent = item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization);
+        sourceSpan.appendChild(sourceLink);
+      } else {
+        sourceSpan.textContent = item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization);
+      }
+      if (index > 0) sourceSpan.insertAdjacentText('beforebegin', '; ');
+      return sourceSpan;
+    });
+    const datasetName = indicatorMetadata?.series_description?.database_name || '';
+    const datasetUrl = `/search?dataset=${indicatorMetadata?.series_description?.database_id}`;
+    const datasetLink = document.createElement('a');
+    datasetLink.href = datasetUrl;
+    datasetLink.textContent = datasetName;
+
+    const sourceP = document.createElement('p');
+    sourceP.className = 'tui__sm_title';
+    sourceP.append('Source: ', ...sourceElements);
+    const datasetP = document.createElement('p');
+    datasetP.className = 'tui__sm_title';
+    datasetP.append('Dataset: ', datasetLink);
+    const goToData360P = document.createElement('p');
+    const goToData360Link = document.createElement('a');
+    goToData360Link.href = '';
+    goToData360Link.className = 'button';
+    goToData360Link.textContent = 'Go to Data 360';
+    goToData360P.appendChild(goToData360Link);
+
+    contentDiv.appendChild(sourceP);
+    contentDiv.appendChild(datasetP);
+    contentDiv.appendChild(goToData360P);
+
+    sourceDiv.appendChild(closeButton);
+    sourceDiv.appendChild(contentDiv);
+    dataIndicatorChart.appendChild(sourceDiv);
+  });
+  dataIndicatorHeader.appendChild(dataIndicatorTitle);
+  dataIndicatorHeader.appendChild(descriptionP);
   dataIndicatorChart.appendChild(dataIndicatorHeader);
   dataIndicatorChart.appendChild(dataIndicatorBlock);
+  console.log('sourceA', sourceA);
   dataIndicatorChart.appendChild(sourceA);
   block.appendChild(dataIndicatorChart);
 
   Highcharts.chart('lifeChart', {
+    ...LINE_CHART_OPTIONS,
     chart: { type: 'line', backgroundColor: null },
     title: { text: null },
     subtitle: { text: null },
     xAxis: {
       categories: xAxis,
       labels: {
-        style: { color: '#7f8c8d' },
+        style: { color: '#1e1f1f' },
         formatter() {
           return (this.pos === 0 || this.pos === xAxis.length - 1) ? this.value : '';
         },
@@ -149,12 +207,15 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     },
     yAxis: {
       title: { text: null },
-      gridLineColor: '#ecf0f1',
+      gridLineColor: '#c2d0dd',
+      gridLineDashStyle: 'Dash',
       labels: {
-        style: { color: '#7f8c8d' },
+        style: { color: '#1e1f1f' },
         formatter() {
-          const ticks = this.axis.tickPositions;
-          return (this.value === ticks[0] || this.value === ticks[ticks.length - 1]) ? this.value : '';
+          if (this.isFirst || this.isLast) {
+            return this.value;
+          }
+          return '';
         },
       },
     },
@@ -188,7 +249,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
       },
     },
     series: [{
-      name: indicatorName[indicatorId],
+      name: indicatorMetadata[indicatorId],
       data: yAxis.map((val) => parseFloat(val) || null),
       color: COLOR_MAP[regionCode],
       lineWidth: 2,
@@ -215,6 +276,7 @@ async function createRightIndicators(block, chartConfig, regionCode, unitMeasure
       const datasetId = datasetIds[index];
       const urlsForIndicatorValue = {
         data: getEndpointFromConfig(endpointList, endpointLabels.Data)?.apiEndpoint,
+        disaggregation: getEndpointFromConfig(endpointList, endpointLabels.Disaggregation)?.apiEndpoint,
       };
       const indicatorData = await fetchIndicatorValue(urlsForIndicatorValue, { datasetId, indicatorId: id, regionCode });
       const unitMeasure = indicatorData?.unitMeasure || '';

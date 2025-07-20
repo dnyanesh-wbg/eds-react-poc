@@ -58,9 +58,9 @@ export async function fetchRegionName(url, regionCode) {
   return region ? region?.name : regionCode;
 }
 
-export async function fetchDisaggregationData(url, { datasetId, indicatorId }) {
+export async function fetchDisaggregationData(url) {
   try {
-    const data = await fetchData(url.replace('{datasetId}', datasetId).replace('{indicatorId}', indicatorId));
+    const data = await fetchData(url);
     return data || [];
   } catch (error) {
     console.error('Error fetching disaggregation data:', error);
@@ -78,12 +78,28 @@ export async function fetchUnitMeasureCodelist(url) {
   }
 }
 
+export async function fetchIndicatorMetadata(url, indicatorIds, headers) {
+  const data = {
+    count: true,
+    facets: [],
+    orderby: '',
+    select: 'series_description',
+    searchFields: '',
+    search: '*',
+    top: 1000,
+    skip: 0,
+    filter: `series_description/idno eq ${indicatorIds.map((id) => `'${id}'`)}`,
+  };
+  const response = await fetchData(url, 'POST', data, headers);
+  return response?.value?.[0];
+}
+
 export async function fetchIndicatorNames(url, indicatorIds, headers) {
   const data = {
     count: true,
     facets: [],
     orderby: '',
-    select: 'series_description/idno,series_description/name,series_description/database_id,additional',
+    select: 'series_description/idno,series_description/name',
     searchFields: '',
     search: '*',
     top: 1000,
@@ -100,7 +116,7 @@ export async function fetchIndicatorNames(url, indicatorIds, headers) {
 export async function fetchLineChartData(url, { datasetId, indicatorId, regionCode }) {
   const baseParams = `filter=DATASET='${datasetId}' AND IND_ID='${indicatorId}' AND REF_AREA='${regionCode}'`;
 
-  const disaggregationData = await fetchDisaggregationData(`${url.disaggregation}?datasetId=${datasetId}&indicatorId=${indicatorId}`, { datasetId, indicatorId });
+  const disaggregationData = await fetchDisaggregationData(`${url.disaggregation}?datasetId=${datasetId}&indicatorId=${indicatorId}`);
   const { params: paramsWithT, isSecondAPICallEligible } = buildDisaggregationFiltersWithT(baseParams, disaggregationData, true);
   let dataUrl = `${url.data}?${paramsWithT}`;
 
@@ -117,7 +133,7 @@ export async function fetchLineChartData(url, { datasetId, indicatorId, regionCo
 export async function fetchIndicatorValue(url, { datasetId, indicatorId, regionCode }) {
   const baseParams = `filter=DATASET='${datasetId}' AND IND_ID='${indicatorId}' AND REF_AREA='${regionCode}'`;
 
-  const disaggregationData = await fetchDisaggregationData(url.disaggregation, { datasetId, indicatorId });
+  const disaggregationData = await fetchDisaggregationData(`${url.disaggregation}?datasetId=${datasetId}&indicatorId=${indicatorId}`);
   const { params: paramsWithT, isSecondAPICallEligible } = buildDisaggregationFiltersWithT(baseParams, disaggregationData, true);
   let dataUrl = `${url.data}?${paramsWithT}`;
 
