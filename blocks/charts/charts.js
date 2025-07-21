@@ -185,9 +185,9 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     const sourceElements = sources.map((item, index) => {
       const sourceSpan = document.createElement('span');
       sourceSpan.key = `source-${index}`;
-      if (item.sourceLink) {
+      if (item.uri) {
         const sourceLink = document.createElement('a');
-        sourceLink.href = item.sourceLink;
+        sourceLink.href = item.uri;
         sourceLink.target = '_blank';
         sourceLink.textContent = item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization);
         sourceSpan.appendChild(sourceLink);
