@@ -188,8 +188,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   console.log('sourceA', sourceA);
   dataIndicatorChart.appendChild(sourceA);
   block.appendChild(dataIndicatorChart);
-
-  Highcharts.chart('lifeChart', {
+  const lineChartOptions = {
     ...LINE_CHART_OPTIONS,
     chart: { type: 'line', backgroundColor: null },
     title: { text: null },
@@ -197,25 +196,70 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     xAxis: {
       categories: xAxis,
       labels: {
-        style: { color: '#1e1f1f' },
+        style: { color: 'rgba(0,0,0,0.6)', fontSize: '12px' },
         formatter() {
-          return (this.pos === 0 || this.pos === xAxis.length - 1) ? this.value : '';
+          if (this.isFirst) {
+            return this.value;
+          }
+          if (this.isLast) {
+            return `<span style="padding-right: 10px;">${this.value}</span>`;
+          }
+          return '';
         },
+        align: 'center',
+        x: 0,
+        y: 20,
       },
-      lineColor: '#ecf0f1',
+      lineColor: 'transparent',
       tickColor: '#ecf0f1',
+      endOnTick: false,
+      startOnTick: false,
+      tickPositioner() {
+        const { categories } = this;
+        return [0, categories.length - 1];
+      },
+      tickPosition: 'middle',
+      tickAmount: 2,
+      gridLineWidth: 0,
+      tickmarkPlacement: 'on',
+      tickLength: 8,
+      tickWidth: 1,
     },
     yAxis: {
       title: { text: null },
       gridLineColor: '#c2d0dd',
       gridLineDashStyle: 'Dash',
+      plotLines: [
+        {
+          color: 'rgba(0, 0, 0, 0.22)',
+          dashStyle: 'Dash',
+          width: 1,
+          value: Math.max(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')),
+          zIndex: 5,
+          label: {
+            text: '',
+            align: 'right',
+            style: {
+              color: '#000',
+              fontWeight: '',
+            },
+          },
+        },
+      ],
+      tickPositions: [
+        Math.min(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')) || 0,
+        Math.max(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')),
+      ], //      min: Math.min(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')) || 0,
+      max: Math.max(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')),
+      endOnTick: false,
+      startOnTick: false,
+      lineWidth: 0,
+      gridLineWidth: 1,
+      tickWidth: 0,
       labels: {
-        style: { color: '#1e1f1f' },
+        style: { color: 'rgba(0,0,0,0.6)', fontSize: '12px' },
         formatter() {
-          if (this.isFirst || this.isLast) {
-            return this.value;
-          }
-          return '';
+          return formatNumberOnUnitMeasure(this.value, unitMeasure, decimals);
         },
       },
     },
@@ -254,10 +298,12 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
       color: COLOR_MAP[regionCode],
       lineWidth: 2,
       marker: { enabled: false },
+      connectNulls: true,
     }],
     legend: { enabled: false },
     credits: { enabled: false },
-  });
+  };
+  Highcharts.chart('lifeChart', lineChartOptions);
 }
 
 async function createRightIndicators(block, chartConfig, regionCode, unitMeasureCodelist) {
