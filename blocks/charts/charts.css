@@ -19,3 +19,18 @@ justify-content: space-between;
  min-width: 40px;
     min-height: 40px;
 }
+.chart-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.arrow-icon {
+  display: inline-flex;
+  align-items: flex-end; 
+}
+.arrow-icon {
+  display: inline-block;
+  vertical-align: text-bottom;
+  margin-left: 4px;
+}

@@ -13,6 +13,17 @@ import {
 } from '../../scripts/api.js';
 import { endpointLabels } from '../../scripts/enum.js';
 
+const SVG_UP = `
+<svg width="24px" height="24px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#004370" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up-right"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></g></svg>`;
+
+const SVG_DOWN = `
+<svg width="16px" height="16px" viewBox="0 0 24 24" fill="none"
+     stroke="#004370" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+     class="feather feather-arrow-down-left">
+  <line x1="17" y1="7" x2="7" y2="17"></line>
+  <polyline points="17 17 7 17 7 7"></polyline>
+</svg>`;
+
 const config = {
   apiKeyName: 'Ocp-Apim-Subscription-Key',
   apiKeyValue: '24c5af8777164761a1e05493970181fe',
@@ -85,11 +96,15 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   } = chartConfig;
 
   const indicatorNameEndpoint = getEndpointFromConfig(endpointList, endpointLabels.Metadata)?.apiEndpoint;
-  const indicatorMetadata = await fetchIndicatorMetadata(indicatorNameEndpoint, [indicatorId], {
-    accept: 'application/json',
-    'content-type': 'application/json',
-    'Ocp-Apim-Subscription-Key': apiKeyValue,
-  });
+  const indicatorMetadata = await fetchIndicatorMetadata(
+    indicatorNameEndpoint,
+    [indicatorId],
+    {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      [apiKeyName]: apiKeyValue,
+    },
+  );
 
   const urlsForLineChart = {
     data: getEndpointFromConfig(endpointList, endpointLabels.Data)?.apiEndpoint,
@@ -97,13 +112,33 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   };
   const { indicatorData } = await fetchLineChartData(urlsForLineChart, { datasetId, indicatorId, regionCode });
 
-  const xAxis = Array.isArray(indicatorData) && indicatorData.length ? indicatorData[0].data.xAxis : [];
-  const yAxisRaw = Array.isArray(indicatorData) && indicatorData.length ? indicatorData[0].data.yAxis : [];
-  const unitMeasure = Array.isArray(indicatorData) && indicatorData.length ? indicatorData[0].unitMeasure : '';
-  const decimals = Array.isArray(indicatorData) && indicatorData.length ? indicatorData[0].decimals : 0;
+  const xAxis = indicatorData[0]?.data?.xAxis || [];
+  const yAxisRaw = indicatorData[0]?.data?.yAxis || [];
+  const unitMeasure = indicatorData[0]?.unitMeasure || '';
+  const decimals = indicatorData[0]?.decimals || 0;
   const unitMeasureName = unitMeasureCodelist.find((item) => item.id === unitMeasure)?.name || unitMeasure;
-  const latestValue = yAxisRaw.length ? parseFloat(yAxisRaw[yAxisRaw.length - 1]) || 0 : 0;
-  const yAxis = yAxisRaw.map((val) => (val === 'null' ? null : parseFloat(val))).filter((val) => val !== null);
+
+  const latestValue = yAxisRaw.length
+    ? parseFloat(yAxisRaw[yAxisRaw.length - 1]) || 0
+    : 0;
+
+  let secondLatestValue = null;
+  // eslint-disable-next-line no-plusplus
+  for (let i = yAxisRaw.length - 2; i >= 0; i--) {
+    const v = parseFloat(yAxisRaw[i]);
+    if (!Number.isNaN(v)) {
+      secondLatestValue = v;
+      break;
+    }
+  }
+  const hasIncreased = secondLatestValue !== null
+    ? latestValue > secondLatestValue
+    : true;
+
+  const yAxis = yAxisRaw
+    .map((val) => (val === 'null' ? null : parseFloat(val)))
+    .filter((val) => val !== null);
+
   const latestYear = xAxis.length ? xAxis[xAxis.length - 1] : '';
 
   const dataIndicatorChart = document.createElement('div');
@@ -116,12 +151,20 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   titleA.href = `/search?indicator=${indicatorId}`;
   titleA.textContent = `${formatNumberOnUnitMeasure(latestValue, unitMeasure, decimals)} ${formatUnitMeasure(unitMeasure, unitMeasureName)}`;
   dataIndicatorTitle.appendChild(titleA);
+
+  const arrowEl = document.createElement('span');
+  arrowEl.className = 'arrow-icon';
+  arrowEl.innerHTML = hasIncreased ? SVG_UP : SVG_DOWN;
+  dataIndicatorTitle.appendChild(arrowEl);
+
   const descriptionP = document.createElement('p');
-  descriptionP.className = 'data-indicator-description ';
+  descriptionP.className = 'data-indicator-description';
   descriptionP.textContent = `${indicatorMetadata?.series_description?.name}, ${latestYear}`;
+
   const dataIndicatorBlock = document.createElement('div');
   dataIndicatorBlock.className = 'data-indicator-block';
   dataIndicatorBlock.id = 'lifeChart';
+
   const sourceA = document.createElement('a');
   sourceA.href = '#';
   sourceA.className = 'data-indicator-flip';
@@ -185,9 +228,10 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   dataIndicatorHeader.appendChild(descriptionP);
   dataIndicatorChart.appendChild(dataIndicatorHeader);
   dataIndicatorChart.appendChild(dataIndicatorBlock);
-  console.log('sourceA', sourceA);
   dataIndicatorChart.appendChild(sourceA);
+
   block.appendChild(dataIndicatorChart);
+
   const lineChartOptions = {
     ...LINE_CHART_OPTIONS,
     chart: { type: 'line', backgroundColor: null },
@@ -198,12 +242,8 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
       labels: {
         style: { color: 'rgba(0,0,0,0.6)', fontSize: '12px' },
         formatter() {
-          if (this.isFirst) {
-            return this.value;
-          }
-          if (this.isLast) {
-            return `<span style="padding-right: 10px;">${this.value}</span>`;
-          }
+          if (this.isFirst) return this.value;
+          if (this.isLast) return `<span style="padding-right: 10px;">${this.value}</span>`;
           return '';
         },
         align: 'center',
@@ -212,11 +252,8 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
       },
       lineColor: 'transparent',
       tickColor: '#ecf0f1',
-      endOnTick: false,
-      startOnTick: false,
       tickPositioner() {
-        const { categories } = this;
-        return [0, categories.length - 1];
+        return [0, this.categories.length - 1];
       },
       tickPosition: 'middle',
       tickAmount: 2,
@@ -229,28 +266,15 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
       title: { text: null },
       gridLineColor: '#c2d0dd',
       gridLineDashStyle: 'Dash',
-      plotLines: [
-        {
-          color: 'rgba(0, 0, 0, 0.22)',
-          dashStyle: 'Dash',
-          width: 1,
-          value: Math.max(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')),
-          zIndex: 5,
-          label: {
-            text: '',
-            align: 'right',
-            style: {
-              color: '#000',
-              fontWeight: '',
-            },
-          },
-        },
-      ],
-      tickPositions: [
-        Math.min(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')) || 0,
-        Math.max(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')),
-      ], //      min: Math.min(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')) || 0,
-      max: Math.max(...yAxis.filter((y) => y !== null && y !== undefined && y !== 'NaN' && y !== 'null')),
+      plotLines: [{
+        color: 'rgba(0, 0, 0, 0.22)',
+        dashStyle: 'Dash',
+        width: 1,
+        value: Math.max(...yAxis),
+        zIndex: 5,
+        label: { text: '', align: 'right' },
+      }],
+      tickPositions: [Math.min(...yAxis) || 0, Math.max(...yAxis)],
       endOnTick: false,
       startOnTick: false,
       lineWidth: 0,
@@ -265,11 +289,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     },
     tooltip: {
       ...LINE_CHART_OPTIONS.tooltip,
-      backgroundColor: null,
-      borderWidth: 0,
-      shadow: false,
       useHTML: true,
-      style: { padding: 0 },
       formatter() {
         const title = `<div class="tui_chart_tooltip_title" style="font-size: 14px; font-weight: 600; line-height: 16px; color: rgba(0, 0, 0, 0.87); padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid #CED4DE;">${this?.points?.[0]?.category}</div>`;
         const points = this?.points?.map((point) => {
@@ -294,7 +314,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     },
     series: [{
       name: indicatorMetadata[indicatorId],
-      data: yAxis.map((val) => parseFloat(val) || null),
+      data: yAxis,
       color: COLOR_MAP[regionCode],
       lineWidth: 2,
       marker: { enabled: false },
@@ -303,6 +323,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     legend: { enabled: false },
     credits: { enabled: false },
   };
+
   Highcharts.chart('lifeChart', lineChartOptions);
 }
 
@@ -330,24 +351,30 @@ async function createRightIndicators(block, chartConfig, regionCode, unitMeasure
       const decimals = indicatorData?.decimals || 0;
       const yAxisRaw = indicatorData?.data?.yAxis || [];
       const yAxis = yAxisRaw.map((val) => (val === 'null' ? null : parseFloat(val))).filter((val) => val !== null);
+
       let latestValue = null;
       let secondLatestValue = null;
       // eslint-disable-next-line no-plusplus
       for (let i = yAxis.length - 1; i >= 0; i--) {
-        if (yAxis[i] !== null && yAxis[i] !== undefined && latestValue === null) {
+        if (yAxis[i] != null && latestValue === null) {
           latestValue = yAxis[i];
-        } else if (yAxis[i] !== null && yAxis[i] !== undefined && latestValue !== null && secondLatestValue === null) {
+        } else if (yAxis[i] != null && latestValue !== null && secondLatestValue === null) {
           secondLatestValue = yAxis[i];
         }
         if (latestValue !== null && secondLatestValue !== null) break;
       }
+
       const value = latestValue !== null ? latestValue : 'N/A';
-      const hasIncreased = latestValue !== null && secondLatestValue !== null ? latestValue > secondLatestValue : false;
+      const hasIncreased = latestValue !== null && secondLatestValue !== null
+        ? latestValue > secondLatestValue
+        : true;
 
       return {
         id,
         label: indicatorNames[id] || id,
-        value: value !== 'N/A' ? `${formatNumberOnUnitMeasure(value, unitMeasure, decimals)}` : value,
+        value: value !== 'N/A'
+          ? `${formatNumberOnUnitMeasure(value, unitMeasure, decimals)}`
+          : value,
         hasIncreased,
       };
     }),
@@ -355,27 +382,35 @@ async function createRightIndicators(block, chartConfig, regionCode, unitMeasure
 
   const dataIndicatorWrapper = document.createElement('div');
   dataIndicatorWrapper.className = 'data-indicator-wrapper';
+
   const ul = document.createElement('ul');
   ul.className = 'data-indicator-list';
+
   indicatorListData.forEach((stat) => {
     const li = document.createElement('li');
     li.className = 'data-indicator-item';
+
     const listTitle = document.createElement('div');
     listTitle.className = 'data-indicator-listtitle';
+
     const a = document.createElement('a');
     a.href = `/search?indicator=${stat.id}`;
     a.textContent = stat.label;
     listTitle.appendChild(a);
+
     const valueP = document.createElement('p');
     valueP.className = 'data-indicator-value';
     valueP.textContent = stat.value;
-    li.appendChild(listTitle);
-    li.appendChild(valueP);
+
     const arrowDiv = document.createElement('div');
     arrowDiv.className = stat.hasIncreased ? 'data-up-arrow' : 'data-down-arrow';
+
+    li.appendChild(listTitle);
+    li.appendChild(valueP);
     li.appendChild(arrowDiv);
     ul.appendChild(li);
   });
+
   dataIndicatorWrapper.appendChild(ul);
   block.appendChild(dataIndicatorWrapper);
 }
