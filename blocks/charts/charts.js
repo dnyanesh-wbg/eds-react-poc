@@ -290,6 +290,10 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
     tooltip: {
       ...LINE_CHART_OPTIONS.tooltip,
       useHTML: true,
+      backgroundColor: null,
+      borderWidth: 0,
+      shadow: false,
+      style: { padding: 0 },
       formatter() {
         const title = `<div class="tui_chart_tooltip_title" style="font-size: 14px; font-weight: 600; line-height: 16px; color: rgba(0, 0, 0, 0.87); padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid #CED4DE;">${this?.points?.[0]?.category}</div>`;
         const points = this?.points?.map((point) => {
