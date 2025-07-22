@@ -333,8 +333,9 @@ async function createRightIndicators(block, chartConfig, regionCode, unitMeasure
   block.appendChild(dataIndicatorWrapper);
 }
 
-export default async function decorate(block, children) {
-  console.log('decorate charts.js', children);
+export default async function decorate(block) {
+  const configs = document.getElementsByClassName('charts-container')?.[0]?.dataset;
+  console.log('configs', JSON.parse(configs.indicatorid));
   const Highcharts = await loadHighchartsScript();
   const regionCode = config.selector || 'MEA';
 
