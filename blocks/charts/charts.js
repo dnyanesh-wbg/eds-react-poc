@@ -71,23 +71,14 @@ function loadHighchartsScript() {
 }
 
 async function createHeader(block, regionCode, regionName) {
-  const headingWrapper = document.createElement('div');
-  headingWrapper.className = 'main-heading heading';
-  const h2 = document.createElement('h2');
-  h2.id = 'featured-news';
-  h2.innerHTML = `<strong>${regionName?.toUpperCase()}</strong><span> BY THE NUMBERS</span>`;
-  const paragraph = document.createElement('p');
-  paragraph.className = 'button-container';
-  const anchor = document.createElement('a');
-  anchor.href = `/search?region=${regionCode}`;
-  anchor.title = 'Explore More Data';
-  anchor.className = 'button';
-  anchor.setAttribute('aria-labelledby', 'featured-news');
-  anchor.textContent = 'Explore More Data';
-  paragraph.appendChild(anchor);
-  headingWrapper.appendChild(h2);
-  headingWrapper.appendChild(paragraph);
-  block.appendChild(headingWrapper);
+  block.innerHTML = `
+    <div class="main-heading heading">
+      <h2 id="featured-news"><strong>${regionName?.toUpperCase()}</strong><span> BY THE NUMBERS</span></h2>
+      <p class="button-container">
+        <a href="/search?region=${regionCode}" title="Explore More Data" class="button" aria-labelledby="featured-news">Explore More Data</a>
+      </p>
+    </div>
+  `;
 }
 
 async function createLeftChart(block, Highcharts, chartConfig, regionCode, regionName, unitMeasureCodelist) {
@@ -131,9 +122,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
       break;
     }
   }
-  const hasIncreased = secondLatestValue !== null
-    ? latestValue > secondLatestValue
-    : true;
+  const hasIncreased = secondLatestValue !== null ? latestValue > secondLatestValue : true;
 
   const yAxis = yAxisRaw
     .map((val) => (val === 'null' ? null : parseFloat(val)))
@@ -143,92 +132,49 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
 
   const dataIndicatorChart = document.createElement('div');
   dataIndicatorChart.className = 'data-indicator-chart hover';
-  const dataIndicatorHeader = document.createElement('div');
-  dataIndicatorHeader.className = 'data-indicator-header';
-  const dataIndicatorTitle = document.createElement('div');
-  dataIndicatorTitle.className = 'data-indicator-title';
-  const titleA = document.createElement('a');
-  titleA.href = `/search?indicator=${indicatorId}`;
-  titleA.textContent = `${formatNumberOnUnitMeasure(latestValue, unitMeasure, decimals)} ${formatUnitMeasure(unitMeasure, unitMeasureName)}`;
-  dataIndicatorTitle.appendChild(titleA);
+  dataIndicatorChart.innerHTML = `
+    <div class="data-indicator-header">
+      <div class="data-indicator-title">
+        <a href="/search?indicator=${indicatorId}">${formatNumberOnUnitMeasure(latestValue, unitMeasure, decimals)} ${formatUnitMeasure(unitMeasure, unitMeasureName)}</a>
+        <span class="arrow-icon">${hasIncreased ? SVG_UP : SVG_DOWN}</span>
+      </div>
+      <p class="data-indicator-description">${indicatorMetadata?.series_description?.name}, ${latestYear}</p>
+    </div>
+    <div class="data-indicator-block" id="lifeChart"></div>
+    <a href="#" class="data-indicator-flip">source</a>
+  `;
 
-  const arrowEl = document.createElement('span');
-  arrowEl.className = 'arrow-icon';
-  arrowEl.innerHTML = hasIncreased ? SVG_UP : SVG_DOWN;
-  dataIndicatorTitle.appendChild(arrowEl);
-
-  const descriptionP = document.createElement('p');
-  descriptionP.className = 'data-indicator-description';
-  descriptionP.textContent = `${indicatorMetadata?.series_description?.name}, ${latestYear}`;
-
-  const dataIndicatorBlock = document.createElement('div');
-  dataIndicatorBlock.className = 'data-indicator-block';
-  dataIndicatorBlock.id = 'lifeChart';
-
-  const sourceA = document.createElement('a');
-  sourceA.href = '#';
-  sourceA.className = 'data-indicator-flip';
-  sourceA.textContent = 'source';
-  sourceA.addEventListener('click', (e) => {
+  const sourceLink = dataIndicatorChart.querySelector('.data-indicator-flip');
+  sourceLink.addEventListener('click', (e) => {
     e.preventDefault();
-    const sourceDiv = document.createElement('div');
-    sourceDiv.className = 'data-indicator-source';
-    const closeButton = document.createElement('button');
-    closeButton.className = 'close-icon';
-    closeButton.setAttribute('aria-label', 'Close');
-    closeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M19.08 21.9134C19.8622 22.6955 21.1303 22.6955 21.9124 21.9134C22.6946 21.1312 22.6946 19.8631 21.9124 19.081L14.8314 12L21.9123 4.91901C22.6945 4.13686 22.6945 2.86875 21.9123 2.08661C21.1302 1.30446 19.8621 1.30446 19.0799 2.08661L11.999 9.16756L4.9181 2.08661C4.13596 1.30447 2.86785 1.30447 2.08571 2.08661C1.30357 2.86876 1.30357 4.13687 2.08571 4.91901L9.16664 12L2.08563 19.081C1.30349 19.8631 1.30349 21.1312 2.08563 21.9134C2.86777 22.6955 4.13587 22.6955 4.91802 21.9134L11.999 14.8324L19.08 21.9134Z" fill="#000D1A" fill-opacity="0.7"></path>
-    </svg>`;
-    closeButton.addEventListener('click', () => sourceDiv.remove());
-    const contentDiv = document.createElement('div');
     const sources = indicatorMetadata?.series_description?.sources || [];
-    const sourceElements = sources.map((item, index) => {
-      const sourceSpan = document.createElement('span');
-      sourceSpan.key = `source-${index}`;
-      if (item.uri) {
-        const sourceLink = document.createElement('a');
-        sourceLink.href = item.uri;
-        sourceLink.target = '_blank';
-        sourceLink.textContent = item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization);
-        sourceSpan.appendChild(sourceLink);
-      } else {
-        sourceSpan.textContent = item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization);
-      }
-      if (index > 0) sourceSpan.insertAdjacentText('beforebegin', '; ');
-      return sourceSpan;
-    });
+    const sourceContent = sources.map((item, index) => {
+      const sourceText = item.uri
+        ? `<a href="${item.uri}" target="_blank">${item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization)}</a>`
+        : item.source || (item.name ? `${item.name}, ${item.organization}` : item.organization);
+      return index > 0 ? `; ${sourceText}` : sourceText;
+    }).join('');
+
     const datasetName = indicatorMetadata?.series_description?.database_name || '';
     const datasetUrl = `/search?dataset=${indicatorMetadata?.series_description?.database_id}`;
-    const datasetLink = document.createElement('a');
-    datasetLink.href = datasetUrl;
-    datasetLink.textContent = datasetName;
 
-    const sourceP = document.createElement('p');
-    sourceP.className = 'tui__sm_title';
-    sourceP.append('Source: ', ...sourceElements);
-    const datasetP = document.createElement('p');
-    datasetP.className = 'tui__sm_title';
-    datasetP.append('Dataset: ', datasetLink);
-    const goToData360P = document.createElement('p');
-    const goToData360Link = document.createElement('a');
-    goToData360Link.href = '';
-    goToData360Link.className = 'button';
-    goToData360Link.textContent = 'Go to Data 360';
-    goToData360P.appendChild(goToData360Link);
-
-    contentDiv.appendChild(sourceP);
-    contentDiv.appendChild(datasetP);
-    contentDiv.appendChild(goToData360P);
-
-    sourceDiv.appendChild(closeButton);
-    sourceDiv.appendChild(contentDiv);
+    const sourceDiv = document.createElement('div');
+    sourceDiv.className = 'data-indicator-source';
+    sourceDiv.innerHTML = `
+      <button class="close-icon" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M19.08 21.9134C19.8622 22.6955 21.1303 22.6955 21.9124 21.9134C22.6946 21.1312 22.6946 19.8631 21.9124 19.081L14.8314 12L21.9123 4.91901C22.6945 4.13686 22.6945 2.86875 21.9123 2.08661C21.1302 1.30446 19.8621 1.30446 19.0799 2.08661L11.999 9.16756L4.9181 2.08661C4.13596 1.30447 2.86785 1.30447 2.08571 2.08661C1.30357 2.86876 1.30357 4.13687 2.08571 4.91901L9.16664 12L2.08563 19.081C1.30349 19.8631 1.30349 21.1312 2.08563 21.9134C2.86777 22.6955 4.13587 22.6955 4.91802 21.9134L11.999 14.8324L19.08 21.9134Z" fill="#000D1A" fill-opacity="0.7"></path>
+        </svg>
+      </button>
+      <div>
+        <p class="tui__sm_title">Source: ${sourceContent}</p>
+        <p class="tui__sm_title">Dataset: <a href="${datasetUrl}">${datasetName}</a></p>
+        <p><a href="" class="button">Go to Data 360</a></p>
+      </div>
+    `;
+    sourceDiv.querySelector('.close-icon').addEventListener('click', () => sourceDiv.remove());
     dataIndicatorChart.appendChild(sourceDiv);
   });
-  dataIndicatorHeader.appendChild(dataIndicatorTitle);
-  dataIndicatorHeader.appendChild(descriptionP);
-  dataIndicatorChart.appendChild(dataIndicatorHeader);
-  dataIndicatorChart.appendChild(dataIndicatorBlock);
-  dataIndicatorChart.appendChild(sourceA);
 
   block.appendChild(dataIndicatorChart);
 
@@ -386,40 +332,21 @@ async function createRightIndicators(block, chartConfig, regionCode, unitMeasure
 
   const dataIndicatorWrapper = document.createElement('div');
   dataIndicatorWrapper.className = 'data-indicator-wrapper';
-
-  const ul = document.createElement('ul');
-  ul.className = 'data-indicator-list';
-
-  indicatorListData.forEach((stat) => {
-    const li = document.createElement('li');
-    li.className = 'data-indicator-item';
-
-    const listTitle = document.createElement('div');
-    listTitle.className = 'data-indicator-listtitle';
-
-    const a = document.createElement('a');
-    a.href = `/search?indicator=${stat.id}`;
-    a.textContent = stat.label;
-    listTitle.appendChild(a);
-
-    const valueP = document.createElement('p');
-    valueP.className = 'data-indicator-value';
-    valueP.textContent = stat.value;
-
-    const arrowDiv = document.createElement('div');
-    arrowDiv.className = stat.hasIncreased ? 'data-up-arrow' : 'data-down-arrow';
-
-    li.appendChild(listTitle);
-    li.appendChild(valueP);
-    li.appendChild(arrowDiv);
-    ul.appendChild(li);
-  });
-
-  dataIndicatorWrapper.appendChild(ul);
+  const listItems = indicatorListData.map((stat) => `
+    <li class="data-indicator-item">
+      <div class="data-indicator-listtitle">
+        <a href="/search?indicator=${stat.id}">${stat.label}</a>
+      </div>
+      <p class="data-indicator-value">${stat.value}</p>
+      <div class="${stat.hasIncreased ? 'data-up-arrow' : 'data-down-arrow'}"></div>
+    </li>
+  `).join('');
+  dataIndicatorWrapper.innerHTML = `<ul class="data-indicator-list">${listItems}</ul>`;
   block.appendChild(dataIndicatorWrapper);
 }
 
-export default async function decorate(block) {
+export default async function decorate(block, children) {
+  console.log('decorate charts.js', children);
   const Highcharts = await loadHighchartsScript();
   const regionCode = config.selector || 'MEA';
 
