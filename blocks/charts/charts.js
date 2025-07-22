@@ -13,17 +13,6 @@ import {
 } from '../../scripts/api.js';
 import { endpointLabels } from '../../scripts/enum.js';
 
-const SVG_UP = `
-<svg width="24px" height="24px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#004370" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up-right"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></g></svg>`;
-
-const SVG_DOWN = `
-<svg width="16px" height="16px" viewBox="0 0 24 24" fill="none"
-     stroke="#004370" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-     class="feather feather-arrow-down-left">
-  <line x1="17" y1="7" x2="7" y2="17"></line>
-  <polyline points="17 17 7 17 7 7"></polyline>
-</svg>`;
-
 const config = {
   apiKeyName: 'Ocp-Apim-Subscription-Key',
   apiKeyValue: '24c5af8777164761a1e05493970181fe',
@@ -135,8 +124,7 @@ async function createLeftChart(block, Highcharts, chartConfig, regionCode, regio
   dataIndicatorChart.innerHTML = `
     <div class="data-indicator-header">
       <div class="data-indicator-title">
-        <a href="/search?indicator=${indicatorId}">${formatNumberOnUnitMeasure(latestValue, unitMeasure, decimals)} ${formatUnitMeasure(unitMeasure, unitMeasureName)}</a>
-        <span class="arrow-icon">${hasIncreased ? SVG_UP : SVG_DOWN}</span>
+        <a href="/search?indicator=${indicatorId}">${formatNumberOnUnitMeasure(latestValue, unitMeasure, decimals)} ${formatUnitMeasure(unitMeasure, unitMeasureName)} <i class="lp lp-arrow-${hasIncreased ? 'up' : 'down'}"></i></a>
       </div>
       <p class="data-indicator-description">${indicatorMetadata?.series_description?.name}, ${latestYear}</p>
     </div>
@@ -360,7 +348,6 @@ export default async function decorate(block, children) {
 
   const dataIndicatorContainer = document.createElement('section');
   dataIndicatorContainer.className = 'default bg-neutrals-10-gradient data-indicator-container';
-  dataIndicatorContainer.setAttribute('data-section-status', 'loaded');
   dataIndicatorContainer.setAttribute('data-sec-spacing', 'section-padding-between');
   dataIndicatorContainer.setAttribute('data-sec-spacing-bottom', 'section-padding-between');
 
