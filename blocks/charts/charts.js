@@ -303,17 +303,49 @@ async function createRightIndicators(block, chartConfig, regionCode, unitMeasure
 export default async function decorate(block) {
   const configs = document.getElementsByClassName('charts-container')?.[0]?.dataset;
   const Highcharts = await loadHighchartsScript();
+  // const config = {
+  //   selector: configs.selector,
+  //   endpointList: JSON.parse(configs.endpointlist),
+  //   indicatorIdsRightPanel: JSON.parse(configs.indicatoridsrightpanel),
+  //   datasetId: configs.datasetid,
+  //   indicatorId: configs.indicatorid,
+  //   apiKeyName: configs.apikeyname,
+  //   apiKeyValue: configs.apikeyvalue,
+  // };
   const config = {
-    ...configs,
-    endpointList: JSON.parse(configs.endpointlist),
-    indicatorIdsRightPanel: JSON.parse(configs.indicatoridsrightpanel),
-    datasetId: configs.datasetid,
-    indicatorId: configs.indicatorid,
-    apiKeyName: configs.apikeyname,
-    apiKeyValue: configs.apikeyvalue,
+    apiKeyName: 'Ocp-Apim-Subscription-Key',
+    apiKeyValue: '24c5af8777164761a1e05493970181fe',
+    selector: 'MEA',
+    datasetId: 'WB_WDI',
+    indicatorId: 'WB_WDI_SP_DYN_LE00_IN',
+    indicatorIdsRightPanel: [
+      'WB_WDI_SP_DYN_LE00_IN',
+      'WB_HCP_SE_LPV_PRIM',
+      'WB_WDI_SP_POP_TOTL',
+      'WB_HNP_SE_ENRR',
+      'WB_HCP_UISSCHBSP1WELEC',
+    ],
+    endpointList: [
+      {
+        apiEndpoint: 'https://data360api.worldbank.org/data360/searchv2',
+        endpointLabel: 'metadata',
+      },
+      {
+        apiEndpoint: 'https://extdataportalqa.worldbank.org/qa/api/data360/metadata/codelist',
+        endpointLabel: 'codelist',
+      },
+      {
+        apiEndpoint: 'https://extdataportalqa.worldbank.org/qa/api/data360/metadata/disaggregation',
+        endpointLabel: 'disaggregation',
+      },
+      {
+        apiEndpoint: 'https://extdataportal.worldbank.org/api/data360/data/indicator',
+        endpointLabel: 'data',
+      },
+    ],
   };
   const regionCode = configs.selector;
-  console.log('configs', configs);
+  console.log('configs', config);
 
   const codeListRefArea = getEndpointFromConfig(config.endpointList, endpointLabels.Codelist)?.apiEndpoint;
   const regionName = await fetchRegionName(`${codeListRefArea}?type=REF_AREA`, regionCode);
